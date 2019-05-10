@@ -46,10 +46,6 @@ struct opts_struct
     (char*)"stdout-subscriber", 0, (char*)"\n", QOS2, NULL, NULL, (char*)"localhost", 1883, 0
 };
 
-Network n;
-MQTTClient c;
-
-
 void cfinish(int sig)
 {
 	signal(SIGINT, NULL);
@@ -91,6 +87,8 @@ unsigned int fill_send_buffer(char * b)
 
 int main(int argc, char** argv)
 {
+    Network n;
+    MQTTClient c;
 	int rc = 0;
 	unsigned char buf[100];
 	unsigned char readbuf[100];
@@ -135,11 +133,17 @@ int main(int argc, char** argv)
 	while (!toStop)	{
 		rc = MQTTYield(&c, 1000);
 		if(rc != SUCCESS) {
+		    printf("[%s@%d] Reconnecting the server, rc = %d\r\n", __FUNCTION__, __LINE__, rc);
+		    MQTTUnsubscribe(&c, topic);
+
+		    MQTTDisconnect(&c);
+		    NetworkDisconnect(&n);
+
 		    NetworkInit(&n);
 		    NetworkConnect(&n, opts.host, opts.port);
 		    MQTTClientInit(&c, &n, 1000, buf, 100, readbuf, 100);
 		    rc = MQTTConnect(&c, &data);
-		    printf("[%s@%d] Reconnecting the server, rc = %d\r\n", __FUNCTION__, __LINE__, rc);
+		    printf("[%s@%d] Reconnect the server success, rc = %d\r\n", __FUNCTION__, __LINE__, rc);
 		} else {
             msg.payloadlen = fill_send_buffer(buffer);
             MQTTPublish(&c, "jan", &msg);
