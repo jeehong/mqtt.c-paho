@@ -90,8 +90,8 @@ int main(int argc, char** argv)
     Network n;
     MQTTClient c;
 	int rc = 0;
-	unsigned char buf[100];
-	unsigned char readbuf[100];
+	unsigned char buf[200];
+	unsigned char readbuf[200];
     char buffer[100];
     MQTTMessage msg;
 
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
 
 	NetworkInit(&n);
 	NetworkConnect(&n, opts.host, opts.port);
-	MQTTClientInit(&c, &n, 1000, buf, 100, readbuf, 100);
+	MQTTClientInit(&c, &n, 1000, buf, 200, readbuf, 200);
 
 	MQTTPacket_connectData data = MQTTPacket_connectData_initializer;       
 	data.willFlag = 0;
@@ -115,7 +115,7 @@ int main(int argc, char** argv)
 	data.username.cstring = opts.username;
 	data.password.cstring = opts.password;
 
-	data.keepAliveInterval = 1000;
+	data.keepAliveInterval = 10;
 	data.cleansession = 1;
 	printf("Connecting to %s %d\n", opts.host, opts.port);
 	
@@ -141,9 +141,12 @@ int main(int argc, char** argv)
 
 		    NetworkInit(&n);
 		    NetworkConnect(&n, opts.host, opts.port);
-		    MQTTClientInit(&c, &n, 1000, buf, 100, readbuf, 100);
+
 		    rc = MQTTConnect(&c, &data);
-		    printf("[%s@%d] Reconnect the server success, rc = %d\r\n", __FUNCTION__, __LINE__, rc);
+		    if(rc == 0) {
+		        rc = MQTTSubscribe(&c, topic, opts.qos, messageArrived);
+		    }
+		    printf("[%s@%d] Reconnect the server %s, rc = %d\r\n", __FUNCTION__, __LINE__, rc == 0 ? "successfully" : "failed", rc);
 		} else {
             msg.payloadlen = fill_send_buffer(buffer);
             MQTTPublish(&c, "jan", &msg);
